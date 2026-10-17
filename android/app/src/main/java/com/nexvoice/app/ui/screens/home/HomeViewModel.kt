@@ -40,6 +40,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _userName = MutableStateFlow("Gamer")
     val userName: StateFlow<String> = _userName
 
+    private val _userEmail = MutableStateFlow("")
+    val userEmail: StateFlow<String> = _userEmail
+
+    private val _userBio = MutableStateFlow("Clutch or kick 🎮")
+    val userBio: StateFlow<String> = _userBio
+
     // The room ID after a successful join — used to navigate to VoiceRoomScreen
     private val _joinedRoomId = MutableStateFlow<String?>(null)
     val joinedRoomId: StateFlow<String?> = _joinedRoomId
@@ -49,15 +55,41 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     val joinError: StateFlow<String?> = _joinError
 
     init {
-        loadUserName()
+        loadUserProfile()
         loadRooms()
     }
 
-    private fun loadUserName() {
+    private fun loadUserProfile() {
         viewModelScope.launch {
             TokenStore.getUserNameFlow(ctx).collect { name ->
                 _userName.value = name ?: "Gamer"
             }
+        }
+        viewModelScope.launch {
+            TokenStore.getUserEmailFlow(ctx).collect { email ->
+                _userEmail.value = email ?: ""
+            }
+        }
+        viewModelScope.launch {
+            TokenStore.getUserBioFlow(ctx).collect { bio ->
+                if (!bio.isNullOrBlank()) {
+                    _userBio.value = bio
+                }
+            }
+        }
+    }
+
+    fun updateBio(newBio: String) {
+        _userBio.value = newBio
+        viewModelScope.launch {
+            TokenStore.saveUserBio(ctx, newBio)
+        }
+    }
+
+    fun updateName(newName: String) {
+        _userName.value = newName
+        viewModelScope.launch {
+            TokenStore.saveUserName(ctx, newName)
         }
     }
 

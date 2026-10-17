@@ -39,6 +39,8 @@ object TokenStore {
     private val TOKEN_KEY   = stringPreferencesKey("auth_token")
     private val USER_ID_KEY = stringPreferencesKey("user_id")
     private val USER_NAME_KEY = stringPreferencesKey("user_name")
+    private val USER_EMAIL_KEY = stringPreferencesKey("user_email")
+    private val USER_BIO_KEY = stringPreferencesKey("user_bio")
 
     // Saves the JWT token to DataStore
     suspend fun saveToken(context: Context, token: String) {
@@ -48,10 +50,30 @@ object TokenStore {
     }
 
     // Saves user info alongside the token
-    suspend fun saveUserInfo(context: Context, userId: String, userName: String) {
+    suspend fun saveUserInfo(
+        context: Context,
+        userId: String,
+        userName: String,
+        userEmail: String? = null,
+        userBio: String? = null
+    ) {
         context.dataStore.edit { prefs ->
             prefs[USER_ID_KEY]   = userId
             prefs[USER_NAME_KEY] = userName
+            if (!userEmail.isNullOrBlank()) prefs[USER_EMAIL_KEY] = userEmail
+            if (!userBio.isNullOrBlank()) prefs[USER_BIO_KEY] = userBio
+        }
+    }
+
+    suspend fun saveUserBio(context: Context, bio: String) {
+        context.dataStore.edit { prefs ->
+            prefs[USER_BIO_KEY] = bio
+        }
+    }
+
+    suspend fun saveUserName(context: Context, name: String) {
+        context.dataStore.edit { prefs ->
+            prefs[USER_NAME_KEY] = name
         }
     }
 
@@ -65,12 +87,22 @@ object TokenStore {
         return context.dataStore.data.map { prefs -> prefs[USER_NAME_KEY] }
     }
 
+    fun getUserEmailFlow(context: Context): Flow<String?> {
+        return context.dataStore.data.map { prefs -> prefs[USER_EMAIL_KEY] }
+    }
+
+    fun getUserBioFlow(context: Context): Flow<String?> {
+        return context.dataStore.data.map { prefs -> prefs[USER_BIO_KEY] }
+    }
+
     // Clears the token — used on logout
     suspend fun clearToken(context: Context) {
         context.dataStore.edit { prefs ->
             prefs.remove(TOKEN_KEY)
             prefs.remove(USER_ID_KEY)
             prefs.remove(USER_NAME_KEY)
+            prefs.remove(USER_EMAIL_KEY)
+            prefs.remove(USER_BIO_KEY)
         }
     }
 

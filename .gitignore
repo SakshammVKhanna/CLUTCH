@@ -1,0 +1,31 @@
+# Android Gradle & Build files
+.gradle/
+build/
+**/build/
+android/.gradle/
+android/app/build/
+android/local.properties
+android/build/
+
+# IDE files
+.idea/
+*.iml
+.DS_Store
+
+# Android Artifacts
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Backend / Node
+node_modules/
+backend/node_modules/
+backend/.env
+.env
+npm-debug.log*
+
+# Temporary
+*.tmp
+*.bak
+last-session.md

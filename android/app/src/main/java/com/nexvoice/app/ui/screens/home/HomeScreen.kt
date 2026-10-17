@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nexvoice.app.models.Room
+import com.nexvoice.app.ui.screens.profile.ProfileScreen
 import com.nexvoice.app.ui.theme.*
 import com.nexvoice.app.utils.InviteLink
 import kotlin.random.Random
@@ -64,8 +65,13 @@ fun HomeScreen(
 ) {
     val uiState    by viewModel.uiState.collectAsState()
     val userName   by viewModel.userName.collectAsState()
+    val userEmail  by viewModel.userEmail.collectAsState()
+    val userBio    by viewModel.userBio.collectAsState()
     val joinedRoom by viewModel.joinedRoomId.collectAsState()
     val joinError  by viewModel.joinError.collectAsState()
+
+    // Profile screen visibility
+    var showProfile by remember { mutableStateOf(false) }
 
     // Check if user is currently in a room (for minimized voice bar)
     // Reset state on app launch - don't persist room state
@@ -116,6 +122,28 @@ fun HomeScreen(
         )
     }
 
+    // If profile is open, show the dedicated ProfileScreen (Image 2 style)
+    if (showProfile) {
+        ProfileScreen(
+            userName = userName,
+            userEmail = userEmail,
+            userBio = userBio,
+            onSaveProfile = { name, bio ->
+                viewModel.updateName(name)
+                viewModel.updateBio(bio)
+            },
+            onLogout = {
+                showProfile = false
+                isInVoiceRoom = false
+                currentRoomId = null
+                viewModel.logout()
+                onLogout()
+            },
+            onClose = { showProfile = false }
+        )
+        return
+    }
+
     // Light theme background
     Box(
         modifier = Modifier
@@ -135,12 +163,7 @@ fun HomeScreen(
                         if (!showSearchBar) searchQuery = ""
                     },
                     onSearchQueryChange = { searchQuery = it },
-                    onLogout = {
-                        isInVoiceRoom = false
-                        currentRoomId = null
-                        viewModel.logout()
-                        onLogout()
-                    }
+                    onOpenProfile = { showProfile = true }
                 )
             },
             bottomBar = {
@@ -155,7 +178,10 @@ fun HomeScreen(
                         }
                     )
                 } else {
-                    ParallelBottomBar(onCreateRoom = onCreateRoom)
+                    ParallelBottomBar(
+                        onCreateRoom = onCreateRoom,
+                        onOpenProfile = { showProfile = true }
+                    )
                 }
             }
         ) { paddingValues ->
@@ -203,7 +229,7 @@ private fun ParallelTopBar(
     searchQuery: String,
     onSearchToggle: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
-    onLogout: () -> Unit
+    onOpenProfile: () -> Unit
 ) {
     Surface(
         color = Color.White,
@@ -221,19 +247,30 @@ private fun ParallelTopBar(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Left side: Only CLUTCH App Logo (Text removed as requested)
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF0F2027),
+                                    Color(0xFF203A43),
+                                    Color(0xFF2C5364)
+                                )
+                            )
+                        )
+                        .border(1.dp, Color(0xFF4CAF50).copy(alpha = 0.5f), RoundedCornerShape(11.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(Color(0xFF4CAF50), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("N", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                    Text("NexVoice", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text(
+                        "C",
+                        color = Color(0xFF4CAF50),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 22.sp,
+                        letterSpacing = 0.5.sp
+                    )
                 }
 
                 Row(
@@ -247,37 +284,28 @@ private fun ParallelTopBar(
                             tint = if (showSearchBar) Color(0xFF4CAF50) else Color.Gray
                         )
                     }
-                    // User avatar — long press or tap shows logout confirm
-                    var showLogoutConfirm by remember { mutableStateOf(false) }
+
+                    // User avatar — tapping opens the dedicated Profile interface (Image 2 style)
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
-                            .background(Color(0xFF2196F3), CircleShape)
-                            .clickable { showLogoutConfirm = true },
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF2196F3),
+                                        Color(0xFF1976D2)
+                                    )
+                                )
+                            )
+                            .clickable { onOpenProfile() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = userName.take(1).uppercase(),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    }
-                    if (showLogoutConfirm) {
-                        AlertDialog(
-                            onDismissRequest = { showLogoutConfirm = false },
-                            title = { Text("Logged in as $userName") },
-                            text = { Text("Do you want to log out?") },
-                            confirmButton = {
-                                TextButton(onClick = { showLogoutConfirm = false; onLogout() }) {
-                                    Text("Logout", color = Color(0xFFE57373))
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { showLogoutConfirm = false }) {
-                                    Text("Cancel")
-                                }
-                            }
+                            fontSize = 15.sp
                         )
                     }
                 }
@@ -730,7 +758,10 @@ private fun MinimizedVoiceBar(
 
 // ── PARALLEL-STYLE BOTTOM BAR (Fixed Alignment) ────────────────────────────
 @Composable
-private fun ParallelBottomBar(onCreateRoom: () -> Unit) {
+private fun ParallelBottomBar(
+    onCreateRoom: () -> Unit,
+    onOpenProfile: () -> Unit = {}
+) {
     val context = LocalContext.current
     fun comingSoon(label: String) =
         Toast.makeText(context, "$label — coming soon!", Toast.LENGTH_SHORT).show()
@@ -794,7 +825,7 @@ private fun ParallelBottomBar(onCreateRoom: () -> Unit) {
                     icon = Icons.Default.Person,
                     label = "Profile",
                     selected = false,
-                    onClick = { comingSoon("Profile") }
+                    onClick = onOpenProfile
                 )
             }
         }

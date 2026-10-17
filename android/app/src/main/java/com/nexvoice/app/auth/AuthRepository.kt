@@ -46,7 +46,7 @@ class AuthRepository(private val context: Context) {
                 val body = response.body()!!
                 // Save token and user info so the app stays logged in
                 TokenStore.saveToken(context, body.token)
-                TokenStore.saveUserInfo(context, body.user.id, body.user.name)
+                TokenStore.saveUserInfo(context, body.user.id, body.user.name, body.user.email)
                 Result.success(body.user.name)
             } else {
                 // Parse the error message from the backend JSON
@@ -69,7 +69,7 @@ class AuthRepository(private val context: Context) {
             if (response.isSuccessful) {
                 val body = response.body()!!
                 TokenStore.saveToken(context, body.token)
-                TokenStore.saveUserInfo(context, body.user.id, body.user.name)
+                TokenStore.saveUserInfo(context, body.user.id, body.user.name, body.user.email)
                 Result.success(body.user.name)
             } else {
                 val errorMsg = parseError(response.errorBody()?.string())
@@ -106,7 +106,12 @@ class AuthRepository(private val context: Context) {
         return try {
             val response = api.getMe(TokenStore.bearerToken(token))
             when {
-                response.isSuccessful -> SessionValidation.Valid
+                response.isSuccessful -> {
+                    response.body()?.user?.let { u ->
+                        TokenStore.saveUserInfo(context, u.id, u.name, u.email)
+                    }
+                    SessionValidation.Valid
+                }
 
                 response.code() == 401 || response.code() == 403 -> {
                     // Token ab kaam ka nahi — saaf karke Login bhejo

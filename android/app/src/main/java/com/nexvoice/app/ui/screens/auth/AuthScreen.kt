@@ -93,10 +93,11 @@ fun AuthScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "NexVoice",
-                fontSize = 32.sp,
+                text = "CLUTCH",
+                fontSize = 34.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = NexGold
+                color = NexGold,
+                letterSpacing = 2.sp
             )
             Text(
                 text = if (isLoginMode) "Welcome back, Gamer!" else "Join the Squad",

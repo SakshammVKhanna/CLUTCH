@@ -22,7 +22,7 @@ object InviteLink {
 
     /** Message text used by the system share sheet. */
     fun shareMessage(roomName: String, roomId: String): String =
-        "Join my NexVoice room \"$roomName\" 🎮\n${build(roomId)}"
+        "Join my CLUTCH squad \"$roomName\" 🎮\n${build(roomId)}"
 
     private val ROOM_ID_PATTERN = Regex("[0-9a-fA-F]{24}")
 

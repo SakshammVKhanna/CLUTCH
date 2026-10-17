@@ -114,16 +114,16 @@ fun SplashScreen(
             }
 
             Text(
-                text = "NexVoice",
-                fontSize = 40.sp,
+                text = "CLUTCH",
+                fontSize = 42.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = NexGold,
-                letterSpacing = 2.sp
+                letterSpacing = 3.sp
             )
 
             Text(
-                text = "Game. Talk. Connect.",
-                fontSize = 16.sp,
+                text = "Clutch the win. Own the voice.",
+                fontSize = 15.sp,
                 color = NexTextSecondary,
                 letterSpacing = 1.sp
             )
