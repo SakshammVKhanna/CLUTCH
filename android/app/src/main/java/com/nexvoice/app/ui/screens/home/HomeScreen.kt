@@ -81,10 +81,6 @@ fun HomeScreen(
     // Join-via-link dialog visibility
     var showJoinDialog by remember { mutableStateOf(false) }
 
-    // Search state
-    var searchQuery by remember { mutableStateOf("") }
-    var showSearchBar by remember { mutableStateOf(false) }
-
     // Navigate to voice room when join succeeds
     LaunchedEffect(joinedRoom) {
         joinedRoom?.let { roomId ->
@@ -156,13 +152,6 @@ fun HomeScreen(
             topBar = {
                 ParallelTopBar(
                     userName = userName,
-                    showSearchBar = showSearchBar,
-                    searchQuery = searchQuery,
-                    onSearchToggle = {
-                        showSearchBar = !showSearchBar
-                        if (!showSearchBar) searchQuery = ""
-                    },
-                    onSearchQueryChange = { searchQuery = it },
                     onOpenProfile = { showProfile = true }
                 )
             },
@@ -198,15 +187,9 @@ fun HomeScreen(
                 }
 
                 is HomeUiState.Success -> {
-                    val filteredRooms = if (searchQuery.isBlank()) state.rooms
-                        else state.rooms.filter {
-                            it.name.contains(searchQuery, ignoreCase = true) ||
-                            it.gameName.contains(searchQuery, ignoreCase = true) ||
-                            it.hostName.contains(searchQuery, ignoreCase = true)
-                        }
                     ParallelHomeContent(
                         paddingValues = paddingValues,
-                        rooms = filteredRooms,
+                        rooms = state.rooms,
                         onJoinRoom = { roomId ->
                             currentRoomId = roomId
                             isInVoiceRoom = true
@@ -225,10 +208,6 @@ fun HomeScreen(
 @Composable
 private fun ParallelTopBar(
     userName: String,
-    showSearchBar: Boolean,
-    searchQuery: String,
-    onSearchToggle: () -> Unit,
-    onSearchQueryChange: (String) -> Unit,
     onOpenProfile: () -> Unit
 ) {
     Surface(
@@ -238,106 +217,61 @@ private fun ParallelTopBar(
             .fillMaxWidth()
             .statusBarsPadding()
     ) {
-        Column {
-            Row(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left side: Only CLUTCH App Logo (Minimal, clean)
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left side: Only CLUTCH App Logo (Text removed as requested)
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(RoundedCornerShape(11.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF0F2027),
-                                    Color(0xFF203A43),
-                                    Color(0xFF2C5364)
-                                )
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF0F2027),
+                                Color(0xFF203A43),
+                                Color(0xFF2C5364)
                             )
                         )
-                        .border(1.dp, Color(0xFF4CAF50).copy(alpha = 0.5f), RoundedCornerShape(11.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "C",
-                        color = Color(0xFF4CAF50),
-                        fontWeight = FontWeight.Black,
-                        fontSize = 22.sp,
-                        letterSpacing = 0.5.sp
                     )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    IconButton(onClick = onSearchToggle) {
-                        Icon(
-                            if (showSearchBar) Icons.Default.Close else Icons.Default.Search,
-                            contentDescription = if (showSearchBar) "Close search" else "Search",
-                            tint = if (showSearchBar) Color(0xFF4CAF50) else Color.Gray
-                        )
-                    }
-
-                    // User avatar — tapping opens the dedicated Profile interface (Image 2 style)
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF2196F3),
-                                        Color(0xFF1976D2)
-                                    )
-                                )
-                            )
-                            .clickable { onOpenProfile() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = userName.take(1).uppercase(),
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
-                    }
-                }
+                    .border(1.dp, Color(0xFF4CAF50).copy(alpha = 0.5f), RoundedCornerShape(11.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "C",
+                    color = Color(0xFF4CAF50),
+                    fontWeight = FontWeight.Black,
+                    fontSize = 22.sp,
+                    letterSpacing = 0.5.sp
+                )
             }
 
-            // Animated search bar
-            AnimatedVisibility(
-                visible = showSearchBar,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+            // User avatar — tapping opens the dedicated Profile interface
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color(0xFF2196F3),
+                                Color(0xFF1976D2)
+                            )
+                        )
+                    )
+                    .clickable { onOpenProfile() },
+                contentAlignment = Alignment.Center
             ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChange,
-                    placeholder = { Text("Search rooms, games, hosts...", fontSize = 13.sp) },
-                    leadingIcon = { Icon(Icons.Default.Search, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(18.dp)) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Close, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF4CAF50),
-                        unfocusedBorderColor = Color(0xFFE0E0E0)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                Text(
+                    text = userName.take(1).uppercase(),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
                 )
             }
         }
