@@ -1,0 +1,11 @@
+# Ignore these files — they should never be committed to Git
+
+# Environment variables (contains secrets like DB passwords)
+.env
+
+# Node modules — downloaded automatically by npm install
+node_modules/
+
+# Log files
+*.log
+npm-debug.log*

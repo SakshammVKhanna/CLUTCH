@@ -1,0 +1,126 @@
+// App-level build config — libraries, compile settings, Compose setup
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.nexvoice.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.nexvoice.app"
+        minSdk 26          // Android 8.0 — covers ~95% of devices
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary true
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        compose true
+    }
+
+    composeOptions {
+        // Must match the Kotlin version we're using (1.9.22 → Compose compiler 1.5.8)
+        kotlinCompilerExtensionVersion '1.5.8'
+    }
+
+    packaging {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+}
+
+dependencies {
+    // Core Android
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.activity:activity-compose:1.8.2'
+
+    // Jetpack Compose BOM — keeps all Compose libs on the same version
+    implementation platform('androidx.compose:compose-bom:2024.02.00')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+
+    // Navigation — lets us move between screens with a single NavController
+    implementation 'androidx.navigation:navigation-compose:2.7.6'
+
+    // ViewModel — holds UI state and survives screen rotations
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0'
+
+    // Splash Screen API — proper animated splash on Android 12+
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+
+    // ── Phase 3: Networking ───────────────────────────────────────────────────
+
+    // Retrofit — turns HTTP calls into Kotlin functions
+    // Instead of writing "make a POST to /api/auth/login", you just call loginUser()
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+
+    // Gson converter — automatically converts JSON ↔ Kotlin data classes
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+
+    // OkHttp — the HTTP engine under Retrofit
+    // We use the interceptor to automatically attach the JWT token to every request
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+
+    // DataStore — secure modern replacement for SharedPreferences
+    // Used to save the JWT token after login so it survives app restarts
+    implementation 'androidx.datastore:datastore-preferences:1.0.0'
+
+    // ── Phase 4A: Real-Time WebSockets (Socket.IO) ───────────────────────────
+    // Connects to Node.js Socket.IO server for instant room presence & mute state
+    implementation ('io.socket:socket.io-client:2.1.1') {
+        exclude group: 'org.json', module: 'json'
+    }
+
+    // ── Phase 4B-2: LiveKit Voice (SFU media layer) ──────────────────────────
+    // Official LiveKit Android SDK — handles mic publish, remote subscribe,
+    // connection + speaking state. Uses prefixed webrtc (livekit.org.webrtc),
+    // so it coexists with the legacy org.webrtc dep below (kept only so the
+    // isolated WebRtcAudioManager still compiles — it is NOT used at runtime).
+    implementation 'io.livekit:livekit-android:2.29.0'
+
+    // ── Phase 4B-1 legacy WebRTC dep (RETIRED in 4B-2) ───────────────────────
+    // io.getstream:stream-webrtc-android:1.1.4 is NOT published on Maven Central /
+    // Google Maven / JitPack, so the project could never resolve it. LiveKit
+    // ships its own prefixed WebRTC (livekit.org.webrtc), which is now the
+    // single audio engine. WebRtcAudioManager.kt is kept as a no-op shim so
+    // old call sites still compile; it is never invoked (USE_LIVEKIT_AUDIO).
+
+    // Debug tools
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation platform('androidx.compose:compose-bom:2024.02.00')
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+}

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        themes.xml
+
+        We define two themes here:
+        1. Theme.NexVoice            — the main app theme (dark, no action bar)
+        2. Theme.NexVoice.SplashScreen — extends the main theme with the
+                                          Android 12+ Splash Screen API config
+
+        windowSplashScreenBackground → color shown behind the splash icon
+        windowSplashScreenAnimatedIcon → the icon shown in the center
+        postSplashScreenTheme → theme to switch to AFTER the splash
+    -->
+
+    <!-- Main theme: dark, no action bar (Compose handles its own top bars) -->
+    <style name="Theme.NexVoice" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/nex_bg</item>
+        <item name="android:statusBarColor">@color/nex_bg</item>
+        <item name="android:navigationBarColor">@color/nex_bg</item>
+    </style>
+
+    <!-- Splash screen theme — used by MainActivity until Compose takes over -->
+    <style name="Theme.NexVoice.SplashScreen" parent="Theme.SplashScreen">
+        <!-- Background color of the splash screen -->
+        <item name="windowSplashScreenBackground">@color/nex_bg</item>
+        <!-- After splash, switch to the main app theme -->
+        <item name="postSplashScreenTheme">@style/Theme.NexVoice</item>
+    </style>
+
+</resources>

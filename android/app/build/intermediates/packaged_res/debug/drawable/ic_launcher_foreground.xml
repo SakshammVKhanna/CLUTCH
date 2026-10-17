@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ic_launcher_foreground.xml
+    The foreground layer of the adaptive launcher icon.
+    Shows a golden headset icon centered on a transparent background.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Headset icon centered in the 108dp canvas -->
+    <path
+        android:fillColor="#FFB020"
+        android:pathData="M54,22C37.43,22 24,35.43 24,52L24,58C20.69,58 18,60.69 18,64L18,76C18,79.31 20.69,82 24,82L30,82L30,50C30,38.95 38.95,30 50,30L58,30C69.05,30 78,38.95 78,50L78,82L84,82C87.31,82 90,79.31 90,76L90,64C90,60.69 87.31,58 84,58L84,52C84,35.43 70.57,22 54,22ZM42,64C39.79,64 38,65.79 38,68L38,80C38,82.21 39.79,84 42,84L42,64ZM66,64L66,84C68.21,84 70,82.21 70,80L70,68C70,65.79 68.21,64 66,64Z" />
+</vector>

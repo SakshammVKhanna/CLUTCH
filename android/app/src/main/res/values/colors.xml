@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        colors.xml
+        Color resources referenced by themes.xml and AndroidManifest.
+        These are the XML equivalents of our Kotlin Color.kt values.
+    -->
+    <color name="nex_bg">#0A0A0F</color>
+    <color name="nex_gold">#FFB020</color>
+    <color name="nex_surface">#13131A</color>
+</resources>
