@@ -1,9 +1,8 @@
 package com.nexvoice.app.ui.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
@@ -16,8 +15,8 @@ import androidx.core.view.WindowCompat
  * This is the central theme file.
  * NexVoiceTheme wraps the entire app — it's called in MainActivity.
  *
- * We ONLY provide a dark color scheme because this is a gaming app.
- * The Material 3 darkColorScheme maps our custom colors to the M3 roles:
+ * The app uses a clean LIGHT (whitish) color scheme with a green accent.
+ * The Material 3 lightColorScheme maps our custom colors to the M3 roles:
  *   primary       → main brand color (buttons, highlights)
  *   background    → app background
  *   surface       → card / sheet background
@@ -25,14 +24,14 @@ import androidx.core.view.WindowCompat
  *   etc.
  */
 
-private val NexDarkColorScheme = darkColorScheme(
+private val NexLightColorScheme = lightColorScheme(
     primary            = NexGold,
-    onPrimary          = NexBg,
-    primaryContainer   = NexGoldDark,
-    onPrimaryContainer = NexGoldLight,
+    onPrimary          = NexOnAccent,
+    primaryContainer   = NexGoldLight,
+    onPrimaryContainer = NexGoldDark,
 
     secondary          = NexOrange,
-    onSecondary        = NexBg,
+    onSecondary        = NexOnAccent,
 
     background         = NexBg,
     onBackground       = NexTextPrimary,
@@ -45,23 +44,22 @@ private val NexDarkColorScheme = darkColorScheme(
     outline            = NexBorder,
     outlineVariant     = NexBorderLight,
     error              = NexMuted,
-    onError            = NexTextPrimary
+    onError            = NexOnAccent
 )
 
 @Composable
 fun NexVoiceTheme(
     content: @Composable () -> Unit
 ) {
-    // Always dark — gaming apps don't need a light theme
-    val colorScheme = NexDarkColorScheme
+    val colorScheme = NexLightColorScheme
     val view = LocalView.current
 
     if (!view.isInEditMode) {
         SideEffect {
-            // Make the status bar match our dark background
+            // White status bar with dark icons to match the light UI
             val window = (view.context as Activity).window
-            window.statusBarColor = NexBg.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            window.statusBarColor = NexSurface.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
         }
     }
 

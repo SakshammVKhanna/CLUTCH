@@ -134,10 +134,10 @@ fun CreateRoomScreen(
                 enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = NexGold, contentColor = NexBg)
+                colors = ButtonDefaults.buttonColors(containerColor = NexGold, contentColor = NexOnAccent)
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), color = NexBg, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), color = NexOnAccent, strokeWidth = 2.dp)
                 } else {
                     Icon(Icons.Default.Add, null)
                     Spacer(Modifier.width(8.dp))

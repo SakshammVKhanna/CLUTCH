@@ -66,6 +66,8 @@ dependencies {
     implementation 'androidx.compose.ui:ui-tooling-preview'
     implementation 'androidx.compose.material3:material3'
     implementation 'androidx.compose.material:material-icons-extended'
+    // Material 2 core — used only for the pull-to-refresh gesture (material3 1.2 has no PullToRefreshBox)
+    implementation 'androidx.compose.material:material'
 
     // Navigation — lets us move between screens with a single NavController
     implementation 'androidx.navigation:navigation-compose:2.7.6'

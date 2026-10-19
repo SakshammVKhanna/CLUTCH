@@ -18,6 +18,7 @@ import com.nexvoice.app.ui.screens.auth.AuthScreen
 import com.nexvoice.app.ui.screens.createroom.CreateRoomScreen
 import com.nexvoice.app.ui.screens.home.HomeScreen
 import com.nexvoice.app.ui.screens.splash.SplashScreen
+import com.nexvoice.app.ui.screens.splash.SplashDestination
 import com.nexvoice.app.ui.screens.voiceroom.VoiceRoomScreen
 import com.nexvoice.app.webrtc.WebRtcAudioManager
 
@@ -88,6 +89,12 @@ fun NexVoiceNavGraph() {
                 onNavigateToHome = {
                     // Already logged in — skip Auth and go straight to Home
                     navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
+                onNavigateToVoiceRoom = { roomId ->
+                    // Restore active voice room session
+                    navController.navigate(Screen.VoiceRoom.createRoute(roomId)) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }

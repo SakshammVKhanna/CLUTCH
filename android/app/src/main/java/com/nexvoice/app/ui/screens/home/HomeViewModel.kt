@@ -54,6 +54,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _joinError = MutableStateFlow<String?>(null)
     val joinError: StateFlow<String?> = _joinError
 
+    // True while a pull-to-refresh is in flight (drives the refresh spinner)
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
+
     init {
         loadUserProfile()
         loadRooms()
@@ -101,6 +105,28 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 onSuccess = { rooms -> HomeUiState.Success(rooms) },
                 onFailure = { error -> HomeUiState.Error(error.message ?: "Failed to load rooms") }
             )
+        }
+    }
+
+    /**
+     * Silent refresh — reloads the room list WITHOUT flashing the full-screen
+     * "Loading rooms..." state. Used by pull-to-refresh and whenever Home comes
+     * back to the foreground, so rooms added from another device show up.
+     */
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            val result = roomRepo.getRooms()
+            result.fold(
+                onSuccess = { rooms -> _uiState.value = HomeUiState.Success(rooms) },
+                onFailure = { error ->
+                    // Keep the list we already have; only surface an error on a cold load.
+                    if (_uiState.value !is HomeUiState.Success) {
+                        _uiState.value = HomeUiState.Error(error.message ?: "Failed to load rooms")
+                    }
+                }
+            )
+            _isRefreshing.value = false
         }
     }
 
