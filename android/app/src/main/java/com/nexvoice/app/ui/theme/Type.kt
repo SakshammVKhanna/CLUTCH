@@ -67,6 +67,6 @@ val NexVoiceTypography = Typography(
         fontWeight = FontWeight.Bold,
         fontSize = 16.sp,
         letterSpacing = 0.5.sp,
-        color = NexBg
+        color = NexOnAccent
     )
 )

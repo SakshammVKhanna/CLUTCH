@@ -13,6 +13,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -29,12 +33,15 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nexvoice.app.models.Room
 import com.nexvoice.app.ui.screens.profile.ProfileScreen
@@ -69,6 +76,20 @@ fun HomeScreen(
     val userBio    by viewModel.userBio.collectAsState()
     val joinedRoom by viewModel.joinedRoomId.collectAsState()
     val joinError  by viewModel.joinError.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+
+    // Reload the room list whenever Home comes back to the foreground, so a room
+    // that someone added us to (from another device) shows up automatically.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // Profile screen visibility
     var showProfile by remember { mutableStateOf(false) }
@@ -190,6 +211,8 @@ fun HomeScreen(
                     ParallelHomeContent(
                         paddingValues = paddingValues,
                         rooms = state.rooms,
+                        isRefreshing = isRefreshing,
+                        onRefresh = { viewModel.refresh() },
                         onJoinRoom = { roomId ->
                             currentRoomId = roomId
                             isInVoiceRoom = true
@@ -279,53 +302,86 @@ private fun ParallelTopBar(
 }
 
 // ── PARALLEL HOME CONTENT (Real Data Only) ────────────────────────────────
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun ParallelHomeContent(
     paddingValues: PaddingValues,
     rooms: List<Room>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
     onJoinRoom: (String) -> Unit,
     onShowJoinDialog: () -> Unit
 ) {
-    LazyColumn(
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = onRefresh
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .background(Color(0xFFF8F9FA)),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(16.dp)
+            .background(Color(0xFFF8F9FA))
+            .pullRefresh(pullRefreshState)
     ) {
-        // Join via link button (always show)
-        item {
-            JoinViaLinkButton(onShowJoinDialog)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            // Join via link button (always show)
+            item {
+                JoinViaLinkButton(onShowJoinDialog)
+            }
+
+            // Show real rooms if available
+            if (rooms.isNotEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Active Rooms",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                        Text(
+                            "Pull down to refresh",
+                            fontSize = 11.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                // Newest rooms first (backend returns them sorted by createdAt desc)
+                items(rooms, key = { it.id }) { room ->
+                    RealRoomCard(
+                        room = room,
+                        onJoin = { onJoinRoom(room.id) }
+                    )
+                }
+            } else {
+                // Empty state - encourage creating first room
+                item {
+                    EmptyRoomsMessage()
+                }
+            }
+
+            // Bottom spacing
+            item { Spacer(Modifier.height(16.dp)) }
         }
 
-        // Show real rooms if available
-        if (rooms.isNotEmpty()) {
-            item {
-                Text(
-                    "Active Rooms",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-
-            items(rooms) { room ->
-                RealRoomCard(
-                    room = room,
-                    onJoin = { onJoinRoom(room.id) }
-                )
-            }
-        } else {
-            // Empty state - encourage creating first room
-            item {
-                EmptyRoomsMessage()
-            }
-        }
-
-        // Bottom spacing
-        item { Spacer(Modifier.height(16.dp)) }
+        PullRefreshIndicator(
+            refreshing = isRefreshing,
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter),
+            backgroundColor = Color.White,
+            contentColor = Color(0xFF16A34A)
+        )
     }
 }
 
@@ -708,14 +764,13 @@ private fun ParallelBottomBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .height(70.dp)
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .height(80.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ParallelBottomNavItem(
@@ -746,7 +801,7 @@ private fun ParallelBottomBar(
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ParallelBottomNavItem(
@@ -776,23 +831,26 @@ private fun ParallelBottomNavItem(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier
             .clickable { onClick() }
-            .padding(8.dp)
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .width(72.dp)
     ) {
         Icon(
             icon,
             contentDescription = label,
             tint = if (selected) Color(0xFF4CAF50) else Color.Gray,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(26.dp)
         )
         
         Text(
             text = label,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             color = if (selected) Color(0xFF4CAF50) else Color.Gray,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

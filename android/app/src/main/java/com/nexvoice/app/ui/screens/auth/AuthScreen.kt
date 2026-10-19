@@ -206,14 +206,14 @@ fun AuthScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NexGold,
-                        contentColor = NexBg
+                        contentColor = NexOnAccent
                     )
                 ) {
                     if (isLoading) {
                         // Spinner while API call is in progress
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
-                            color = NexBg,
+                            color = NexOnAccent,
                             strokeWidth = 2.dp
                         )
                     } else {
@@ -250,7 +250,7 @@ private fun AuthTab(
             text = text,
             fontWeight = FontWeight.SemiBold,
             fontSize = 15.sp,
-            color = if (isSelected) NexBg else NexTextSecondary
+            color = if (isSelected) NexOnAccent else NexTextSecondary
         )
     }
 }

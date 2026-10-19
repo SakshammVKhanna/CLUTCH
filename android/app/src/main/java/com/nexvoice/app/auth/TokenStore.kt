@@ -41,6 +41,7 @@ object TokenStore {
     private val USER_NAME_KEY = stringPreferencesKey("user_name")
     private val USER_EMAIL_KEY = stringPreferencesKey("user_email")
     private val USER_BIO_KEY = stringPreferencesKey("user_bio")
+    private val ACTIVE_ROOM_ID_KEY = stringPreferencesKey("active_room_id")
 
     // Saves the JWT token to DataStore
     suspend fun saveToken(context: Context, token: String) {
@@ -93,6 +94,22 @@ object TokenStore {
 
     fun getUserBioFlow(context: Context): Flow<String?> {
         return context.dataStore.data.map { prefs -> prefs[USER_BIO_KEY] }
+    }
+
+    fun getActiveRoomIdFlow(context: Context): Flow<String?> {
+        return context.dataStore.data.map { prefs -> prefs[ACTIVE_ROOM_ID_KEY] }
+    }
+
+    suspend fun setActiveRoomId(context: Context, roomId: String) {
+        context.dataStore.edit { prefs ->
+            prefs[ACTIVE_ROOM_ID_KEY] = roomId
+        }
+    }
+
+    suspend fun clearActiveRoomId(context: Context) {
+        context.dataStore.edit { prefs ->
+            prefs.remove(ACTIVE_ROOM_ID_KEY)
+        }
     }
 
     // Clears the token — used on logout

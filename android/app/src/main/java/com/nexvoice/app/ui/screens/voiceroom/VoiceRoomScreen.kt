@@ -42,6 +42,7 @@ import androidx.core.content.ContextCompat
 import com.nexvoice.app.models.RoomMember
 import com.nexvoice.app.realtime.LiveKitManager
 import com.nexvoice.app.realtime.SocketManager
+import com.nexvoice.app.ui.components.OfflineBanner
 import com.nexvoice.app.utils.InviteLink
 import com.nexvoice.app.ui.theme.*
 
@@ -258,6 +259,15 @@ fun VoiceRoomScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Spacer(Modifier.height(2.dp))
+
+                // ── Offline Banner (shows when Socket.IO disconnected) ────────
+                OfflineBanner(
+                    isVisible = connectionState == SocketManager.ConnectionState.DISCONNECTED ||
+                                connectionState == SocketManager.ConnectionState.ERROR,
+                    onRetry = { viewModel.enterRoom(roomId) },
+                    message = "Connection lost. Reconnecting…",
+                    buttonText = "Retry Now"
+                )
 
                 // ── Microphone Permission Warning (if denied) ──────────────
                 if (permissionDeniedNotice) {
@@ -622,7 +632,7 @@ private fun AddMemberDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = NexSurface,
+        containerColor = Color.White,
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -648,15 +658,15 @@ private fun AddMemberDialog(
                 OutlinedTextField(
                     value = usernameInput,
                     onValueChange = { usernameInput = it },
-                    placeholder = { Text("e.g. sakshamm or pro@gmail.com", color = NexMuted, fontSize = 13.sp) },
+                    placeholder = { Text("e.g. sakshamm or pro@gmail.com", color = NexTextHint, fontSize = 13.sp) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = NexTextPrimary,
                         unfocusedTextColor = NexTextPrimary,
                         focusedBorderColor = NexGold,
                         unfocusedBorderColor = NexBorder,
-                        focusedContainerColor = NexBg,
-                        unfocusedContainerColor = NexBg
+                        focusedContainerColor = NexSurfaceAlt,
+                        unfocusedContainerColor = NexSurfaceAlt
                     ),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -676,6 +686,7 @@ private fun AddMemberDialog(
                     enabled = usernameInput.isNotBlank() && !isInviting,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NexGold,
+                        contentColor = NexOnAccent,
                         disabledContainerColor = NexGold.copy(alpha = 0.3f)
                     ),
                     shape = RoundedCornerShape(10.dp),
@@ -684,11 +695,11 @@ private fun AddMemberDialog(
                         .height(42.dp)
                 ) {
                     if (isInviting) {
-                        CircularProgressIndicator(color = NexBg, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                        CircularProgressIndicator(color = NexOnAccent, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                     } else {
-                        Icon(Icons.Default.Add, null, tint = NexBg, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Add, null, tint = NexOnAccent, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Add to Room", color = NexBg, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Add to Room", color = NexOnAccent, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
 
@@ -699,7 +710,7 @@ private fun AddMemberDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(NexBg)
+                        .background(NexSurfaceAlt)
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -722,7 +733,7 @@ private fun AddMemberDialog(
                             Toast.makeText(context, "Room Code copied!", Toast.LENGTH_SHORT).show()
                         }
                     ) {
-                        Text("Copy", color = NexGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Copy", color = NexGoldDark, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -789,8 +800,8 @@ private fun OwnerCard(owner: RoomMember, isMe: Boolean = false) {
             .background(
                 Brush.horizontalGradient(
                     colors = listOf(
-                        NexGoldDark.copy(alpha = 0.25f),
-                        NexSurface
+                        NexGold.copy(alpha = 0.10f),
+                        Color.White
                     )
                 )
             )
@@ -813,7 +824,7 @@ private fun OwnerCard(owner: RoomMember, isMe: Boolean = false) {
                     .fillMaxSize()
                     .border(2.dp, if (owner.isSpeaking) NexSpeaking else NexGold, CircleShape)
                     .background(
-                        if (owner.isSpeaking) NexSpeaking.copy(alpha = 0.15f) else NexGold.copy(alpha = 0.06f),
+                        if (owner.isSpeaking) NexSpeaking.copy(alpha = 0.15f) else NexGold.copy(alpha = 0.08f),
                         CircleShape
                     )
             )
@@ -823,7 +834,7 @@ private fun OwnerCard(owner: RoomMember, isMe: Boolean = false) {
                     .size(46.dp)
                     .background(
                         Brush.radialGradient(
-                            colors = listOf(NexGoldDark.copy(alpha = 0.4f), NexSurfaceAlt)
+                            colors = listOf(NexGold.copy(alpha = 0.28f), Color.White)
                         ),
                         CircleShape
                     ),
@@ -833,7 +844,7 @@ private fun OwnerCard(owner: RoomMember, isMe: Boolean = false) {
                     owner.username.take(1).uppercase(),
                     fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = NexGold
+                    color = NexGoldDark
                 )
             }
             // Mic status badge (bottom-right)
@@ -841,7 +852,7 @@ private fun OwnerCard(owner: RoomMember, isMe: Boolean = false) {
                 modifier = Modifier
                     .size(18.dp)
                     .align(Alignment.BottomEnd)
-                    .background(NexBg, CircleShape)
+                    .background(Color.White, CircleShape)
                     .padding(2.dp)
                     .background(if (owner.isMuted) NexMuted else NexSpeaking, CircleShape),
                 contentAlignment = Alignment.Center
@@ -849,7 +860,7 @@ private fun OwnerCard(owner: RoomMember, isMe: Boolean = false) {
                 Icon(
                     if (owner.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
                     null,
-                    tint = NexBg,
+                    tint = Color.White,
                     modifier = Modifier.size(10.dp)
                 )
             }
@@ -873,10 +884,10 @@ private fun OwnerCard(owner: RoomMember, isMe: Boolean = false) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .background(NexGold.copy(alpha = 0.2f))
+                            .background(NexGold.copy(alpha = 0.18f))
                             .padding(horizontal = 5.dp, vertical = 1.dp)
                     ) {
-                        Text("You", fontSize = 10.sp, color = NexGold, fontWeight = FontWeight.Bold)
+                        Text("You", fontSize = 10.sp, color = NexGoldDark, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -904,14 +915,14 @@ private fun OwnerCard(owner: RoomMember, isMe: Boolean = false) {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(NexGold.copy(alpha = 0.15f))
+                .background(NexGold.copy(alpha = 0.12f))
                 .border(1.dp, NexGold.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
                 .padding(horizontal = 10.dp, vertical = 5.dp)
         ) {
             Text(
                 "HOST",
                 fontSize = 10.sp,
-                color = NexGold,
+                color = NexGoldDark,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp
             )
@@ -954,7 +965,7 @@ private fun MemberTile(member: RoomMember, isMe: Boolean = false) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(NexSurface)
+            .background(Color.White)
             .border(
                 width = if (isMe) 2.dp else 1.dp,
                 color = when {
@@ -993,8 +1004,8 @@ private fun MemberTile(member: RoomMember, isMe: Boolean = false) {
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                NexGold.copy(alpha = 0.25f),
-                                NexSurfaceAlt
+                                NexGold.copy(alpha = 0.18f),
+                                Color(0xFFF1F3F5)
                             )
                         ),
                         CircleShape
@@ -1010,7 +1021,7 @@ private fun MemberTile(member: RoomMember, isMe: Boolean = false) {
                     member.username.take(1).uppercase(),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = NexGold
+                    color = NexGoldDark
                 )
             }
 
@@ -1019,7 +1030,7 @@ private fun MemberTile(member: RoomMember, isMe: Boolean = false) {
                 modifier = Modifier
                     .size(18.dp)
                     .align(Alignment.BottomEnd)
-                    .background(NexBg, CircleShape)
+                    .background(Color.White, CircleShape)
                     .padding(2.dp)
                     .background(
                         if (member.isMuted) NexMuted else NexOnline,
@@ -1041,7 +1052,7 @@ private fun MemberTile(member: RoomMember, isMe: Boolean = false) {
             text = if (isMe) "${member.username} (You)" else member.username,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
-            color = if (isMe) NexGold else if (member.isSpeaking) NexTextPrimary else NexTextSecondary,
+            color = if (isMe) NexGoldDark else if (member.isSpeaking) NexTextPrimary else NexTextSecondary,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -1057,7 +1068,7 @@ private fun InviteTile(onClick: () -> Unit = {}) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(NexSurface)
+            .background(Color.White)
             .border(1.dp, NexBorder, RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(vertical = 14.dp, horizontal = 8.dp)
@@ -1066,7 +1077,7 @@ private fun InviteTile(onClick: () -> Unit = {}) {
         Box(
             modifier = Modifier
                 .size(50.dp)
-                .background(NexSurfaceAlt, CircleShape)
+                .background(Color(0xFFF1F3F5), CircleShape)
                 .border(1.5.dp, NexBorder, CircleShape),
             contentAlignment = Alignment.Center
         ) {
@@ -1097,7 +1108,7 @@ private fun RoomInfoCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(NexSurface)
+            .background(Color.White)
             .border(1.dp, NexBorder, RoundedCornerShape(14.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
@@ -1117,7 +1128,7 @@ private fun RoomInfoCard(
                 .background(NexGold.copy(alpha = 0.12f))
                 .padding(horizontal = 8.dp, vertical = 3.dp)
         ) {
-            Text(gameName, fontSize = 10.sp, color = NexGold, fontWeight = FontWeight.Bold)
+            Text(gameName, fontSize = 10.sp, color = NexGoldDark, fontWeight = FontWeight.Bold)
         }
 
         Spacer(Modifier.weight(1f))
@@ -1153,8 +1164,7 @@ private fun LightVoiceControlDock(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 18.dp),
+                .padding(horizontal = 12.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1183,7 +1193,7 @@ private fun LightVoiceControlDock(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(60.dp)
+                        .size(64.dp)
                         .background(Color(0xFFE57373), CircleShape)
                         .clickable { onLeave() },
                     contentAlignment = Alignment.Center
@@ -1192,12 +1202,12 @@ private fun LightVoiceControlDock(
                         Icons.Default.CallEnd,
                         "Leave Room",
                         tint = Color.White,
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
                 Text(
                     "Leave",
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     color = Color(0xFFE57373),
                     fontWeight = FontWeight.Bold
                 )
@@ -1232,11 +1242,11 @@ private fun LightVoiceControlButton(
     isActive: Boolean,
     activeColor: Color,
     onClick: () -> Unit,
-    size: Dp = 48.dp
+    size: Dp = 52.dp
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(5.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Box(
             modifier = Modifier
@@ -1246,7 +1256,7 @@ private fun LightVoiceControlButton(
                     CircleShape
                 )
                 .border(
-                    width = 1.5.dp,
+                    width = 2.dp,
                     color = if (isActive) activeColor.copy(alpha = 0.6f) else Color(0xFFE0E0E0),
                     shape = CircleShape
                 )
@@ -1257,14 +1267,16 @@ private fun LightVoiceControlButton(
                 icon,
                 contentDescription = label,
                 tint = if (isActive) activeColor else Color.Gray,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
         Text(
             label,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             color = if (isActive) activeColor else Color.Gray,
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -1276,7 +1288,7 @@ private fun MicrophonePermissionBanner(
     onDismiss: () -> Unit
 ) {
     Surface(
-        color = NexSurfaceCard,
+        color = Color.White,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, NexBorderLight),
         modifier = Modifier.fillMaxWidth()
@@ -1320,7 +1332,7 @@ private fun MicrophonePermissionBanner(
                 onClick = onGrantClick,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = NexGold,
-                    contentColor = NexBg
+                    contentColor = NexOnAccent
                 ),
                 shape = RoundedCornerShape(8.dp),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),

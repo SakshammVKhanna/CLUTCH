@@ -90,6 +90,8 @@ class VoiceRoomViewModel(application: Application) : AndroidViewModel(applicatio
     fun enterRoom(roomId: String) {
         if (activeRoomId == roomId) return
         activeRoomId = roomId
+        // Persist active room for session restore
+        setActiveRoom(roomId)
 
         viewModelScope.launch {
             try {
@@ -247,6 +249,7 @@ class VoiceRoomViewModel(application: Application) : AndroidViewModel(applicatio
      * - Releases legacy WebRTC engine (only if it was used)
      * - Emits leave_room on Socket.IO
      * - Calls REST leave API
+     * - Clears active room for session restore
      */
     fun leaveRoom(roomId: String) {
         viewModelScope.launch {
@@ -270,6 +273,7 @@ class VoiceRoomViewModel(application: Application) : AndroidViewModel(applicatio
                 Log.e("VoiceRoomVM", "leaveRoom error: ${e.message}", e)
             } finally {
                 activeRoomId = null
+                clearActiveRoom()
                 _leftRoom.value = true
             }
         }
@@ -329,6 +333,20 @@ class VoiceRoomViewModel(application: Application) : AndroidViewModel(applicatio
 
         activeRoomId?.let { roomId ->
             SocketManager.leaveRoom(roomId)
+        }
+        clearActiveRoom()
+    }
+
+    // ── Active Room Persistence (for session restore) ─────────────────────────
+    private fun setActiveRoom(roomId: String) {
+        viewModelScope.launch {
+            TokenStore.setActiveRoomId(context, roomId)
+        }
+    }
+
+    private fun clearActiveRoom() {
+        viewModelScope.launch {
+            TokenStore.clearActiveRoomId(context)
         }
     }
 }

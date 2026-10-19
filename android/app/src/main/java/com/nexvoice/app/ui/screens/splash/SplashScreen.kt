@@ -29,16 +29,16 @@ import com.nexvoice.app.ui.theme.*
 import kotlinx.coroutines.delay
 
 /**
- * SplashScreen.kt (Phase 3 — session verify update)
+ * SplashScreen.kt (Phase 3 — session verify update + auto-retry + session restore)
  *
  * App ka pehla screen. Yahan:
  *  1. Logo ka fade + scale animation chalta hai
  *  2. Saath hi SplashViewModel token ko server pe verify karta hai
  *     (loading spinner dikhta hai — user ko pata chale kuch ho raha hai)
  *  3. Faisla hone pe:
- *       valid token   → Home (auto-login)
+ *       valid token   → Home (auto-login) YA VoiceRoom (session restore)
  *       invalid token → Login page
- *       server down   → Retry button (logout nahi karte)
+ *       server down   → Retry button + Auto-retry countdown (logout nahi karte)
  *
  * Navigation jaan-boojh kar do cheezon ka intezaar karta hai:
  *   (a) session ka faisla ho jaye, aur
@@ -51,6 +51,7 @@ private const val MIN_SPLASH_MS = 1200L
 fun SplashScreen(
     onNavigateToAuth: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onNavigateToVoiceRoom: (String) -> Unit,
     viewModel: SplashViewModel = viewModel()
 ) {
     var visible by remember { mutableStateOf(false) }
@@ -68,6 +69,7 @@ fun SplashScreen(
     )
 
     val destination by viewModel.destination.collectAsState()
+    val retryCountdown by viewModel.retryCountdown.collectAsState()
 
     LaunchedEffect(Unit) {
         visible = true
@@ -76,12 +78,14 @@ fun SplashScreen(
     }
 
     // Faisla + animation, dono ho jayein tab navigate karo.
-    // NetworkError pe kuch nahi — usi screen pe Retry dikhate hain.
+    // NetworkError pe kuch nahi — usi screen pe Retry + countdown dikhate hain.
     LaunchedEffect(destination, minTimeElapsed) {
         if (!minTimeElapsed) return@LaunchedEffect
-        when (destination) {
-            SplashDestination.GoToHome -> onNavigateToHome()
-            SplashDestination.GoToAuth -> onNavigateToAuth()
+        val dest = destination
+        when (dest) {
+            is SplashDestination.GoToHome -> onNavigateToHome()
+            is SplashDestination.GoToAuth -> onNavigateToAuth()
+            is SplashDestination.GoToVoiceRoom -> onNavigateToVoiceRoom(dest.roomId)
             else -> Unit
         }
     }
@@ -107,7 +111,7 @@ fun SplashScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Headset,
-                    contentDescription = "NexVoice Logo",
+                    contentDescription = "CLUTCH Logo",
                     tint = NexGold,
                     modifier = Modifier.size(56.dp)
                 )
@@ -130,7 +134,10 @@ fun SplashScreen(
 
             // ── Session check ka status ────────────────────────────────────
             if (destination == SplashDestination.NetworkError) {
-                SplashNetworkError(onRetry = { viewModel.decide() })
+                SplashNetworkError(
+                    onRetry = { viewModel.onManualRetry() },
+                    retryCountdown = retryCountdown
+                )
             } else {
                 Spacer(Modifier.height(12.dp))
                 CircularProgressIndicator(
@@ -152,9 +159,13 @@ fun SplashScreen(
 /**
  * Server tak pahunch hi nahi paye (backend band / internet nahi).
  * User ka token galat nahi hai — isliye logout nahi karte, sirf retry dete hain.
+ * Ab auto-retry countdown bhi dikhta hai.
  */
 @Composable
-private fun SplashNetworkError(onRetry: () -> Unit) {
+private fun SplashNetworkError(
+    onRetry: () -> Unit,
+    retryCountdown: Int
+) {
     Box(
         modifier = Modifier
             .padding(horizontal = 24.dp)
@@ -180,19 +191,30 @@ private fun SplashNetworkError(onRetry: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Could not verify your session. Check that the backend is running, then try again.",
+                text = "Could not verify your session. Check that the backend is running.",
                 color = NexTextSecondary,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
+
+            // Auto-retry countdown
+            if (retryCountdown > 0) {
+                Text(
+                    text = "Auto-retry in ${retryCountdown}s…",
+                    color = NexGold,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
             Button(
                 onClick = onRetry,
                 colors = ButtonDefaults.buttonColors(containerColor = NexGold),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Icon(Icons.Default.Refresh, contentDescription = null, tint = NexBg)
+                Icon(Icons.Default.Refresh, contentDescription = null, tint = NexOnAccent)
                 Spacer(Modifier.width(8.dp))
-                Text("Try Again", color = NexBg, fontWeight = FontWeight.Bold)
+                Text("Try Again", color = NexOnAccent, fontWeight = FontWeight.Bold)
             }
         }
     }
