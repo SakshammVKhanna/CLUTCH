@@ -27,12 +27,18 @@ try {
 
 const connectDB = async () => {
   try {
+    if (!process.env.MONGO_URI) {
+      throw new Error('MONGO_URI is missing from backend/.env');
+    }
     const conn = await mongoose.connect(process.env.MONGO_URI);
     console.log(`✅ MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
+    // Do not kill the process. Auth/rooms need MongoDB, but the HTTP
+    // server must stay up so the phone can reach health checks and
+    // LiveKit routes, and so nodemon does not crash-loop on a bad URI.
     console.error(`❌ MongoDB connection failed: ${error.message}`);
-    // Exit the process — app can't run without the database
-    process.exit(1);
+    console.error('⚠️  Server will keep running. Fix MONGO_URI in backend/.env and restart.');
+    console.error('    Atlas: reset the database user password and paste the new connection string.');
   }
 };
 

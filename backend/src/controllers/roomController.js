@@ -63,20 +63,38 @@ const getMyRooms = async (req, res) => {
       return res.status(401).json({ error: 'User ID missing from token' });
     }
 
+    const userObjectId = mongoose.Types.ObjectId.isValid(userId)
+      ? new mongoose.Types.ObjectId(userId)
+      : userId;
+
     const rooms = await Room.find({
-      $or: [{ owner: userId }, { members: userId }],
+      $or: [
+        { owner: userId },
+        { owner: userObjectId },
+        { members: userId },
+        { members: userObjectId },
+      ],
     })
       .populate('owner',   'name email profileImage')
       .populate('members', 'name email profileImage')
       .sort({ createdAt: -1 });
 
-    res.json({ count: rooms.length, rooms: rooms || [] });
+    const cleanedRooms = rooms.map(room => {
+      const r = room.toObject ? room.toObject() : room;
+      if (Array.isArray(r.members)) {
+        r.members = r.members.filter(Boolean);
+      }
+      return r;
+    });
+
+    res.json({ count: cleanedRooms.length, rooms: cleanedRooms });
 
   } catch (error) {
     console.error('getMyRooms error:', error);
     res.status(500).json({ error: error.message || 'Failed to get rooms' });
   }
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/rooms/:id  (public)
@@ -193,35 +211,46 @@ const inviteUser = async (req, res) => {
 
     const query = username.trim();
     const isObjectId = mongoose.Types.ObjectId.isValid(query);
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const normalizedPattern = escaped.replace(/(.)\1*$/i, '$1+');
 
     const conditions = [
-      { name: new RegExp(`^${query}$`, 'i') },
+      { name: new RegExp(`^${escaped}$`, 'i') },
+      { name: new RegExp(`^${normalizedPattern}$`, 'i') },
       { email: query.toLowerCase() },
     ];
     if (isObjectId) {
       conditions.push({ _id: query });
     }
 
-    const targetUser = await User.findOne({ $or: conditions });
-    if (!targetUser) {
+    // Find all matching users (handles multiple accounts with same name)
+    const targetUsers = await User.find({ $or: conditions });
+    if (!targetUsers || targetUsers.length === 0) {
       return res.status(404).json({ error: `User "${query}" not found` });
     }
 
-    const targetIdStr = targetUser._id.toString();
-    const alreadyMember = room.members.some((m) => m.toString() === targetIdStr);
-    if (alreadyMember) {
-      return res.status(409).json({ error: `${targetUser.name} is already in this room` });
+    let addedUsers = [];
+    for (const targetUser of targetUsers) {
+      const targetIdStr = targetUser._id.toString();
+      const alreadyMember = room.members.some((m) => m.toString() === targetIdStr);
+      if (!alreadyMember) {
+        room.members.push(targetUser._id);
+        addedUsers.push(targetUser);
+      }
     }
 
-    room.members.push(targetUser._id);
-    await room.save();
+    if (addedUsers.length > 0) {
+      await room.save();
+    }
+
+    const primaryUser = addedUsers[0] || targetUsers[0];
 
     res.json({
-      message: `${targetUser.name} added to the room successfully!`,
+      message: `${primaryUser.name} added to the room successfully!`,
       user: {
-        id: targetUser._id,
-        name: targetUser.name,
-        email: targetUser.email,
+        id: primaryUser._id,
+        name: primaryUser.name,
+        email: primaryUser.email,
       },
     });
 

@@ -73,6 +73,13 @@ app.get('/', (req, res) => {
 // The four parameters (err, req, res, next) tell Express this is an error handler.
 app.use((err, req, res, next) => {
   console.error('Server error:', err.message);
+  // Mongoose auth/network failures used to surface as a generic 500.
+  const dbDown = /authentication failed|ECONNREFUSED|ENOTFOUND|buffering timed out|MongoServerError|MongooseServerSelectionError/i.test(err.message || '');
+  if (dbDown) {
+    return res.status(503).json({
+      error: 'Database is unavailable. Check MONGO_URI in backend/.env (Atlas username/password).',
+    });
+  }
   res.status(500).json({ error: 'Something went wrong on the server.' });
 });
 
@@ -84,10 +91,21 @@ initSocket(server);
 
 // ── Start Server ──────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} already in use! Close the existing server process or run on another port.`);
+  } else {
+    console.error('Server error:', err);
+  }
+  process.exit(1);
+});
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ NexVoice server running on http://0.0.0.0:${PORT}`);
   console.log(`📱 Phone access: http://172.20.44.113:${PORT}`);
   console.log(`⚡ Real-time Socket.IO initialized on port ${PORT}`);
   console.log(`🎙️ LiveKit URL configured: ${process.env.LIVEKIT_URL}`);
 });
+
 
