@@ -77,6 +77,7 @@ fun HomeScreen(
     val joinedRoom by viewModel.joinedRoomId.collectAsState()
     val joinError  by viewModel.joinError.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val refreshError by viewModel.refreshError.collectAsState()
 
     // Reload the room list whenever Home comes back to the foreground, so a room
     // that someone added us to (from another device) shows up automatically.
@@ -125,6 +126,12 @@ fun HomeScreen(
         joinError?.let { error ->
             snackbarHostState.showSnackbar(error)
             viewModel.clearJoinError()
+        }
+    }
+    LaunchedEffect(refreshError) {
+        refreshError?.let { error ->
+            snackbarHostState.showSnackbar("Refresh failed: $error")
+            viewModel.clearRefreshError()
         }
     }
 

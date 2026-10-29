@@ -58,6 +58,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
+    private val _refreshError = MutableStateFlow<String?>(null)
+    val refreshError: StateFlow<String?> = _refreshError
+
+    fun clearRefreshError() { _refreshError.value = null }
+
     init {
         loadUserProfile()
         loadRooms()
@@ -118,8 +123,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _isRefreshing.value = true
             val result = roomRepo.getRooms()
             result.fold(
-                onSuccess = { rooms -> _uiState.value = HomeUiState.Success(rooms) },
+                onSuccess = { rooms ->
+                    _uiState.value = HomeUiState.Success(rooms)
+                    _refreshError.value = null
+                },
                 onFailure = { error ->
+                    _refreshError.value = error.message ?: "Failed to load rooms"
                     // Keep the list we already have; only surface an error on a cold load.
                     if (_uiState.value !is HomeUiState.Success) {
                         _uiState.value = HomeUiState.Error(error.message ?: "Failed to load rooms")
